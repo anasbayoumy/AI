@@ -17,6 +17,28 @@ import catboost as cb
 SEED = 42
 np.random.seed(SEED)
 
+def preprocess_size(size_str):
+    """Convert size string to numeric value in MB"""
+    if pd.isna(size_str):
+        return np.nan
+    size_str = str(size_str).upper()
+    if 'M' in size_str:
+        return float(size_str.replace('M', ''))
+    elif 'K' in size_str:
+        return float(size_str.replace('K', '')) / 1024
+    else:
+        return np.nan
+
+def preprocess_installs(installs_str):
+    """Convert installs string to numeric value"""
+    if pd.isna(installs_str):
+        return np.nan
+    installs_str = str(installs_str)
+    installs_str = installs_str.replace(',', '').replace('+', '')
+    if installs_str.isdigit():
+        return float(installs_str)
+    return np.nan
+
 def load_and_preprocess_data(file_path):
     """
     Load and preprocess the dataset
@@ -27,6 +49,15 @@ def load_and_preprocess_data(file_path):
     # Basic preprocessing steps
     # Remove duplicates
     df = df.drop_duplicates()
+    
+    # Convert Size to numeric
+    df['Size'] = df['Size'].apply(preprocess_size)
+    
+    # Convert Installs to numeric
+    df['Installs'] = df['Installs'].apply(preprocess_installs)
+    
+    # Convert Price to numeric (handle the case where Price is in the wrong column)
+    df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
     
     # Handle missing values
     df = df.dropna()
@@ -118,10 +149,10 @@ def create_visualizations(df, results):
 
 def main():
     # Load and preprocess data
-    df, preprocessor = load_and_preprocess_data('googleplaystore.csv')
+    df, preprocessor = load_and_preprocess_data('test_googleplaystore.csv')
     
     # Prepare features and target
-    X = df.drop('Rating', axis=1)
+    X = df.drop(['Rating', 'App'], axis=1)  # Drop App name as it's not a feature
     y = df['Rating']
     
     # Split the data
